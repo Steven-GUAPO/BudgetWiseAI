@@ -10,6 +10,7 @@
 
 # production
 /build
+backend/firebase-service-account.json
 
 # misc
 .DS_Store

@@ -36,7 +36,7 @@ class AuthService {
     async login(data: LoginData): Promise<TokenResponse> {
         const response = await api.post<TokenResponse>('/auth/login', data);
         if (response.data.access_token) {
-            localStorage.setItem('accessToken', response.data.access_token);
+            localStorage.setItem('access_token', response.data.access_token);
         }
         return response.data;
     }
@@ -47,11 +47,11 @@ class AuthService {
     }
 
     logout(): void {
-        localStorage.removeItem('accessToken');
+        localStorage.removeItem('access_token');
     }
 
     getToken(): string | null {
-        return localStorage.getItem('accessToken');
+        return localStorage.getItem('access_token');
     }
 
     isAuthenticated(): boolean {

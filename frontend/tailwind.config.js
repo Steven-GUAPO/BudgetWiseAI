@@ -1,6 +1,9 @@
 /** @type {import('tailwindcss').Config} */
+
+import defaultTheme from 'tailwindcss/defaultTheme'
+
 module.exports = {
-content: [
+  content: [
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
@@ -10,7 +13,11 @@ content: [
         secondary: '#10B981',
         danger: '#EF4444',
         warning: '#F59E0B',
-      }
+      },
+      fontFamily: {
+        serifDisplay: ['"DM Serif Text"', ...defaultTheme.fontFamily.serif],
+        serifBody: ['"Crimson Text"', ...defaultTheme.fontFamily.serif],
+      },
     },
   },
   plugins: [],

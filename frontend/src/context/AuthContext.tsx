@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import authService from '../services/auth.service';
 import { User, AuthContextType, SignupData } from '../types/auth.types';
+import api from '../services/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -30,6 +31,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const response = await authService.login({ username, password });
             const currentUser = await authService.getCurrentUser();
             setUser(currentUser);
+            // Auto Sync on Login
+            api.post('/bank/sync').catch(() => {});
         };
 
         const signup = async (userData: SignupData) => {
@@ -43,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         return (
-            <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated: authService.isAuthenticated, loading }}>
+            <AuthContext.Provider value={{ user, login, setUser, signup, logout, isAuthenticated: authService.isAuthenticated, loading }}>
                 {children}
             </AuthContext.Provider>
         );

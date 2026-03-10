@@ -9,3 +9,23 @@
 .secondary-bg {
   background-color: #0f5048;
 }
+
+/* Hide scrollbar - Firefox */
+.scrollbar-hide {
+  scrollbar-width: none;
+}
+
+/* Hide scrollbar - Chrome, Safari */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.page-title {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+  font-weight: 200;
+}
+
+.btn-primary {
+  @apply bg-emerald-600 text-white p-3 rounded-lg hover:bg-emerald-700 transition;
+}
