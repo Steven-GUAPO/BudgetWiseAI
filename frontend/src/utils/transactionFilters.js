@@ -15,8 +15,10 @@ export function applyTransactionFilters(transactions, filters) {
   // 🔍 Keyword Search
   if (search) {
     const normalizedSearch = search.toLowerCase();
-    filtered = filtered.filter((t) =>
-      t.description.toLowerCase().includes(normalizedSearch),
+    filtered = filtered.filter(
+      (t) =>
+        t.merchant.toLowerCase().includes(normalizedSearch) ||
+        t.category.toLowerCase().includes(search),
     );
   }
 
