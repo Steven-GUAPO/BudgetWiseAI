@@ -8,6 +8,7 @@ export interface Goal {
   priority: "high" | "medium" | "low";
   is_completed: boolean;
   percentage_complete: number;
+  percentage_completed?: number;
   days_remaining: number;
   monthly_deposit_needed: number;
 }
