@@ -1,5 +1,6 @@
+import { formatDate } from "utils/formatDate";
 import { Calendar } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import ReactCalendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
@@ -14,6 +15,20 @@ const DateInput = ({ onRangeChange }: DateInputProps) => {
     null,
     null,
   ]);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setDateSelectOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleRangeChange = (value: unknown) => {
     const range = value as [Date | null, Date | null];
@@ -23,24 +38,24 @@ const DateInput = ({ onRangeChange }: DateInputProps) => {
   };
   return (
     <>
-      <div className="date-range-container relative">
+      <div className="date-range-container relative" ref={containerRef}>
         <div
-          className="toggle-calendar flex gap-1 items-center text-sm border p-2 rounded-md cursor-pointer transition-all"
+          className="toggle-calendar flex gap-1 items-center text-sm border p-2 rounded-md cursor-pointer transition-all whitespace-nowrap"
           onClick={() => setDateSelectOpen(!dateSelectOpen)}
         >
-          <Calendar className="w-4 h-4" />
-          <p>
+          <Calendar className="w-3 h-3 shrink-0" />
+          <p className="truncate">
             {dateRange[0] && dateRange[1]
-              ? `${dateRange[0].toLocaleDateString()} - ${dateRange[1].toLocaleDateString()}`
-              : "Select Date Range"}
+              ? `${formatDate(dateRange[0], { month: "numeric", day: "numeric", year: "2-digit" })} - ${formatDate(dateRange[1], { month: "numeric", day: "numeric", year: "2-digit" })}`
+              : "Select Date"}
           </p>
         </div>
 
         <div
-          className={`absolute w-full min-w-[300px] ${dateSelectOpen ? "visible" : "hidden"} w-auto shadow-lg p-2 bg-white`}
+          className={`absolute right-0 ${dateSelectOpen ? "visible" : "hidden"} w-auto shadow-lg p-2 rounded-md`}
         >
           <ReactCalendar
-            className="bg-white w-full p-1 border border-gray-300 rounded-md text-sm"
+            className="w-full text-black p-1 border border-gray-300 rounded-md text-sm"
             selectRange={true}
             maxDate={new Date()}
             value={dateRange}
