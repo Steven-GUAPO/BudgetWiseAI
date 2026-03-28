@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import transactionService, {
@@ -152,14 +152,13 @@ const Dashboard: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
-
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
+      isRefresh ? setRefreshing(true) : setLoading(true);
+      setError(null);
       const [bal, txns, bdgs, gls] = await Promise.all([
         transactionService.getBalance(),
         transactionService.getTransactions({ limit: 5 }),
@@ -172,44 +171,77 @@ const Dashboard: React.FC = () => {
       setGoals(gls);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
+      setError("Failed to load dashboard data. Please try again.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
-  const getTopCategories = () => {
-    const allTxns = transactions.filter(
-      (t) => t.transaction_type === "expense",
-    );
-    const categoryTotals: Record<string, number> = {};
-    allTxns.forEach((t) => {
-      categoryTotals[t.category] =
-        (categoryTotals[t.category] || 0) + Math.abs(t.amount);
-    });
-    return Object.entries(categoryTotals)
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  // Derived values — memoised so they don't recompute on every render
+  const topCategories = useMemo(() => {
+    const totals: Record<string, number> = {};
+    transactions
+      .filter((t) => t.transaction_type === "expense")
+      .forEach((t) => {
+        totals[t.category] = (totals[t.category] || 0) + Math.abs(t.amount);
+      });
+    return Object.entries(totals)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3);
-  };
+  }, [transactions]);
 
-  const topCategories = getTopCategories();
-  const totalMonthlyBudget = budgets.reduce((sum, b) => sum + b.limit, 0);
-  const totalMonthlySpent = budgets.reduce((sum, b) => sum + b.spent, 0);
+  const {
+    totalMonthlyBudget,
+    totalMonthlySpent,
+    budgetPct,
+    isOverBudget,
+    overBudgetCount,
+  } = useMemo(() => {
+    const spent = budgets.reduce((s, b) => s + b.spent, 0);
+    const limit = budgets.reduce((s, b) => s + b.limit, 0);
+    return {
+      totalMonthlyBudget: limit,
+      totalMonthlySpent: spent,
+      budgetPct: limit ? Math.min((spent / limit) * 100, 100) : 0,
+      isOverBudget: spent > limit,
+      overBudgetCount: budgets.filter((b) => b.is_over_budget).length,
+    };
+  }, [budgets]);
 
-  if (loading)
+  const netIncome = useMemo(
+    () =>
+      transactions.reduce(
+        (sum, t) =>
+          t.transaction_type === "income"
+            ? sum + t.amount
+            : sum - Math.abs(t.amount),
+        0,
+      ),
+    [transactions],
+  );
+
+  // Render states
+
+  if (loading) return <DashboardSkeleton />;
+
+  if (error) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "60vh",
-        }}
-      >
-        <div style={{ color: "#4b7a64", fontSize: "15px" }}>
-          Loading dashboard...
-        </div>
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <p className="text-red-400 text-sm">{error}</p>
+        <button
+          onClick={() => fetchAll()}
+          className="px-5 py-2 bg-emerald-400/10 border border-emerald-400/20 rounded-lg text-emerald-400 text-sm font-medium hover:bg-emerald-400/20 transition-colors cursor-pointer"
+        >
+          Retry
+        </button>
       </div>
     );
+  }
 
   return (
     <div>
@@ -228,6 +260,28 @@ const Dashboard: React.FC = () => {
         <p style={{ color: "#4b7a64", margin: "4px 0 0 0", fontSize: "14px" }}>
           Here's your financial overview
         </p>
+        <button
+          onClick={() => fetchAll(true)}
+          disabled={refreshing}
+          title="Refresh"
+          className="mt-1 p-2 rounded-lg text-[#4b7a64] hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors cursor-pointer border-0 bg-transparent disabled:opacity-40"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={refreshing ? "animate-spin" : ""}
+          >
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+        </button>
       </div>
 
       {/* Top row — Balance + Monthly Budget */}
@@ -278,33 +332,16 @@ const Dashboard: React.FC = () => {
               / ${totalMonthlyBudget.toFixed(2)}
             </span>
           </p>
-          <div
-            style={{
-              width: "100%",
-              height: "6px",
-              backgroundColor: "#0d1f15",
-              borderRadius: "3px",
-              marginTop: "8px",
-            }}
-          >
-            <div
-              style={{
-                height: "100%",
-                width: `${Math.min((totalMonthlySpent / totalMonthlyBudget) * 100 || 0, 100)}%`,
-                backgroundColor:
-                  totalMonthlySpent > totalMonthlyBudget
-                    ? "#ef4444"
-                    : "#34d399",
-                borderRadius: "3px",
-                transition: "width 0.4s ease",
-              }}
+          <div className="mt-2">
+            <ProgressBar
+              pct={budgetPct}
+              colorClass={isOverBudget ? "bg-red-500" : "bg-emerald-400"}
             />
           </div>
           <p
             style={{ color: "#4b7a64", fontSize: "12px", margin: "6px 0 0 0" }}
           >
-            {budgets.length} active budgets ·{" "}
-            {budgets.filter((b) => b.is_over_budget).length} over limit
+            {budgets.length} active budgets · {overBudgetCount} over limit
           </p>
         </Card>
       </div>
@@ -312,13 +349,11 @@ const Dashboard: React.FC = () => {
       {/* Second row — Top Categories + Recent Transactions */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <Card>
-          <div style={cardHeaderStyle}>
-            <SectionHeader
-              label="Top Spending"
-              linkLabel="View all →"
-              onLink={() => navigate("/activity")}
-            />
-          </div>
+          <SectionHeader
+            label="Top Spending"
+            linkLabel="View all →"
+            onLink={() => navigate("/activity")}
+          />
           {topCategories.length === 0 ? (
             <p
               style={{ color: "#4b7a64", fontSize: "13px", marginTop: "16px" }}
@@ -541,42 +576,6 @@ const Dashboard: React.FC = () => {
       </div>
     </div>
   );
-};
-
-const labelStyle: React.CSSProperties = {
-  color: "#4b7a64",
-  fontSize: "12px",
-  fontWeight: "600",
-  textTransform: "uppercase",
-  letterSpacing: "0.8px",
-  margin: 0,
-};
-
-const cardHeaderStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: "4px",
-};
-
-const linkButtonStyle: React.CSSProperties = {
-  background: "none",
-  border: "none",
-  color: "#34d399",
-  fontSize: "12px",
-  cursor: "pointer",
-  padding: 0,
-};
-
-const actionButtonStyle: React.CSSProperties = {
-  padding: "8px 16px",
-  backgroundColor: "rgba(52, 211, 153, 0.1)",
-  border: "1px solid rgba(52, 211, 153, 0.2)",
-  borderRadius: "6px",
-  color: "#34d399",
-  fontSize: "13px",
-  cursor: "pointer",
-  fontWeight: "500",
 };
 
 export default Dashboard;
