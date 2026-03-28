@@ -100,6 +100,49 @@ const EmptyState: React.FC<{
   </div>
 );
 
+// Skeleton Loader
+
+const Shimmer: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <div className={`bg-emerald-900/20 rounded animate-pulse ${className}`} />
+);
+
+const SkeletonCard: React.FC<{ rows?: number }> = ({ rows = 3 }) => (
+  <Card>
+    <Shimmer className="h-3 w-24 mb-4" />
+    <Shimmer className="h-7 w-32 mb-4" />
+    {Array.from({ length: rows }).map((_, i) => (
+      <div key={i} className="mt-3.5">
+        <div className="flex justify-between mb-1.5">
+          <Shimmer className="h-3 w-20" />
+          <Shimmer className="h-3 w-12" />
+        </div>
+        <Shimmer className="h-1.5 w-full" />
+      </div>
+    ))}
+  </Card>
+);
+
+const DashboardSkeleton: React.FC = () => (
+  <div>
+    <div className="mb-8">
+      <Shimmer className="h-7 w-56 mb-2" />
+      <Shimmer className="h-4 w-40" />
+    </div>
+    <div className="grid grid-cols-2 gap-4 mb-4">
+      <SkeletonCard rows={1} />
+      <SkeletonCard rows={1} />
+    </div>
+    <div className="grid grid-cols-2 gap-4 mb-4">
+      <SkeletonCard rows={3} />
+      <SkeletonCard rows={4} />
+    </div>
+    <div className="grid grid-cols-2 gap-4">
+      <SkeletonCard rows={3} />
+      <SkeletonCard rows={3} />
+    </div>
+  </div>
+);
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -422,68 +465,34 @@ const Dashboard: React.FC = () => {
             onLink={() => navigate("/budgets")}
           />
           {budgets.length === 0 ? (
-            <div style={{ marginTop: "16px" }}>
-              <p
-                style={{
-                  color: "#4b7a64",
-                  fontSize: "13px",
-                  marginBottom: "12px",
-                }}
-              >
-                No budgets created yet
-              </p>
-              <button
-                onClick={() => navigate("/budgets")}
-                style={actionButtonStyle}
-              >
-                Create Budget
-              </button>
-            </div>
+            <EmptyState
+              message="No budgets created yet"
+              cta="Create Budget"
+              onClick={() => navigate("/budgets")}
+            />
           ) : (
-            budgets.slice(0, 4).map((b) => (
-              <div key={b.id} style={{ marginTop: "14px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "5px",
-                  }}
-                >
-                  <span style={{ color: "#d1fae5", fontSize: "12px" }}>
-                    {b.category}
-                  </span>
-                  <span
-                    style={{
-                      color: b.is_over_budget ? "#f87171" : "#4b7a64",
-                      fontSize: "12px",
-                    }}
-                  >
-                    ${b.spent.toFixed(0)} / ${b.limit.toFixed(0)}
-                  </span>
+            budgets.slice(0, 4).map((b) => {
+              const barColor = b.is_over_budget
+                ? "bg-red-500"
+                : b.percentage_used > 80
+                  ? "bg-amber-400"
+                  : "bg-emerald-400";
+              return (
+                <div key={b.id} className="mt-3.5">
+                  <div className="flex justify-between mb-1.5">
+                    <span className="text-[#d1fae5] text-xs">{b.category}</span>
+                    <span
+                      className={`text-xs ${
+                        b.is_over_budget ? "text-red-400" : "text-[#4b7a64]"
+                      }`}
+                    >
+                      ${b.spent.toFixed(0)} / ${b.limit.toFixed(0)}
+                    </span>
+                  </div>
+                  <ProgressBar pct={b.percentage_used} colorClass={barColor} />
                 </div>
-                <div
-                  style={{
-                    width: "100%",
-                    height: "5px",
-                    backgroundColor: "#0d1f15",
-                    borderRadius: "3px",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${Math.min(b.percentage_used, 100)}%`,
-                      backgroundColor: b.is_over_budget
-                        ? "#ef4444"
-                        : b.percentage_used > 80
-                          ? "#f59e0b"
-                          : "#34d399",
-                      borderRadius: "3px",
-                    }}
-                  />
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </Card>
 
@@ -494,83 +503,39 @@ const Dashboard: React.FC = () => {
             onLink={() => navigate("/goals")}
           />
           {goals.length === 0 ? (
-            <div style={{ marginTop: "16px" }}>
-              <p
-                style={{
-                  color: "#4b7a64",
-                  fontSize: "13px",
-                  marginBottom: "12px",
-                }}
-              >
-                No goals created yet
-              </p>
-              <button
-                onClick={() => navigate("/goals")}
-                style={actionButtonStyle}
-              >
-                Create Goal
-              </button>
-            </div>
+            <EmptyState
+              message="No goals created yet"
+              cta="Create Goal"
+              onClick={() => navigate("/goals")}
+            />
           ) : (
-            goals.slice(0, 3).map((g) => (
-              <div key={g.id} style={{ marginTop: "14px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "5px",
-                  }}
-                >
-                  <span
-                    style={{
-                      color: "#d1fae5",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                    }}
-                  >
-                    {g.name}
-                  </span>
-                  <span style={{ color: "#4b7a64", fontSize: "12px" }}>
-                    {(g.percentage_complete ?? 0).toFixed(0)}%
-                  </span>
+            goals.slice(0, 3).map((g) => {
+              const pct = g.percentage_complete ?? 0;
+              const daysLeft = Math.max(
+                0,
+                Math.ceil(
+                  (new Date(g.target_date).getTime() - Date.now()) /
+                    (1000 * 60 * 60 * 24),
+                ),
+              );
+              return (
+                <div key={g.id} className="mt-3.5">
+                  <div className="flex justify-between mb-1.5">
+                    <span className="text-[#d1fae5] text-xs font-medium">
+                      {g.name}
+                    </span>
+                    <span className="text-[#4b7a64] text-xs">
+                      {pct.toFixed(0)}%
+                    </span>
+                  </div>
+                  <ProgressBar pct={pct} colorClass="bg-emerald-400" />
+                  <p className="text-[#4b7a64] text-[11px] mt-1 m-0">
+                    ${(g.current_amount ?? 0).toFixed(0)} of $
+                    {(g.target_amount ?? 0).toFixed(0)} · {daysLeft}d left
+                  </p>
                 </div>
-                <div
-                  style={{
-                    width: "100%",
-                    height: "5px",
-                    backgroundColor: "#0d1f15",
-                    borderRadius: "3px",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${Math.min(g.percentage_complete ?? 0, 100)}%`,
-                      backgroundColor: "#34d399",
-                      borderRadius: "3px",
-                    }}
-                  />
-                </div>
-                <p
-                  style={{
-                    color: "#4b7a64",
-                    fontSize: "11px",
-                    margin: "4px 0 0 0",
-                  }}
-                >
-                  ${(g.current_amount ?? 0).toFixed(0)} of $
-                  {(g.target_amount ?? 0).toFixed(0)} ·{" "}
-                  {Math.max(
-                    0,
-                    Math.ceil(
-                      (new Date(g.target_date).getTime() - Date.now()) /
-                        (1000 * 60 * 60 * 24),
-                    ),
-                  )}
-                  d left
-                </p>
-              </div>
-            ))
+              );
+            })
           )}
         </Card>
       </div>
