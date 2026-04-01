@@ -3,139 +3,148 @@ import { Budget } from "../../types/budget.types";
 
 interface BudgetCardProps {
   budget: Budget;
-  onEdit?: (budget: Budget) => void;
-  onDelete?: (budgetId: string) => void;
+  cat_color: string;
+  onEdit: (budget: Budget) => void;
+  onDelete: (budgetId: string) => void;
 }
 
-const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete }) => {
-  const getProgressColor = () => {
-    if (budget.is_over_budget) return "bg-red-500";
-    if (budget.percentage_used >= 80) return "bg-yellow-500";
-    return "bg-green-500";
+const ProgressBar: React.FC<{ pct: number; colorClass: string }> = ({
+  pct,
+  colorClass,
+}) => (
+  <div className="w-full h-1.5 bg-[#0d1f15] rounded-full">
+    <div
+      className={`h-full rounded-full transition-all duration-500 ${colorClass}`}
+      style={{ width: `${Math.min(pct, 100)}%` }}
+    />
+  </div>
+);
+
+const BudgetCard: React.FC<BudgetCardProps> = ({
+  budget,
+  cat_color,
+  onEdit,
+  onDelete,
+}) => {
+  const getProgressColor = (budget: Budget) => {
+    if (budget.is_over_budget) return "#EF4444";
+    if (budget.percentage_used > 80) return "#F59E0B";
+    return "#10B981";
   };
 
   return (
-    <div style={{
-      backgroundColor: "#2a2a3e",
-      borderRadius: "12px",
-      padding: "20px",
-      border: `2px solid ${budget.is_over_budget ? "#EF4444" : "#4a4a4a"}`,
-  }}>
-    <div style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "start",
-      marginBottom: "12px",
-    }}>
-    <div> <h3 style={{
-      color: "#ffffff", 
-      fontSize: "18px",
-      fontWeight: "600",
-      marginBottom: "4px",
-    }}>
-      {budget.category}
-      </h3>
-      <p style={{
-        color: "#a0a0a0",
-        fontSize: "14px",
-      }}>
-        {budget.month} {budget.year}
-      </p>
-      </div>
-      <div style={{
-        display: "flex",
-        gap: "8px",
-      }}>
-        {onEdit && (
+    <div
+      key={budget.id}
+      style={{
+        background: "#0c1a0f",
+        borderRadius: "10px",
+        padding: "12px",
+        border: `1px solid ${budget.is_over_budget ? "rgba(239,68,68,0.35)" : "rgba(52,211,153,0.08)"}`,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "start",
+          marginBottom: "12px",
+        }}
+      >
+        <div>
+          <p
+            style={{
+              color: cat_color,
+              fontSize: "16px",
+              fontWeight: 600,
+              margin: 0,
+            }}
+          >
+            {budget.category}
+          </p>
+          <p
+            style={{
+              color: "#4b7a64",
+              fontSize: "11px",
+              margin: "3px 0 0",
+            }}
+          >
+            {budget.month} {budget.year}
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "10px" }}>
           <button
             onClick={() => onEdit(budget)}
             style={{
-              backgroundColor: "#3b82f6",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "6px",
-              padding: "6px 12px",
-              fontSize: "12px",
-            }}>
+              background: "none",
+              color: "#34d399",
+              cursor: "pointer",
+              fontSize: "11px",
+              fontWeight: 500,
+              padding: "5px 10px",
+              borderRadius: "4px",
+              border: "1px solid gray",
+            }}
+          >
             Edit
           </button>
-        )}
-        {onDelete && (
           <button
             onClick={() => onDelete(budget.id)}
             style={{
-              backgroundColor: "#ef4444",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "6px",
-              padding: "6px 12px",
-              fontSize: "12px",
+              background: "none",
+              color: "#f87171",
+              cursor: "pointer",
+              fontSize: "11px",
+              fontWeight: 500,
+              padding: "5px 10px",
+              borderRadius: "4px",
+              border: "1px solid gray",
             }}
           >
             Delete
           </button>
-        )}
-      </div>
-  </div>  
-
-        <div style ={{
-          marginBottom: "12px",
-        }}>
-          <div style={{ 
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: "4px",
-          }}>
-            <span style={{
-              color: "#a0a0a0",
-              fontSize: "14px",
-            }}>
-              ${budget.spent.toFixed(2)} / ${budget.limit.toFixed(2)}
-            </span>
-            </div>
-
-          <div style={{
-             width: '100%',
-          height: '8px',
-          backgroundColor: '#1a1a2e',
-          borderRadius: '4px',
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            width: `${Math.min(budget.percentage_used, 100)}%`,
-            height: '100%',
-            backgroundColor: getProgressColor(),
-            transition: 'width 0.3s ease',
-          }} />
         </div>
       </div>
-
-      {budget.is_over_budget && (
-        <div style={{
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          padding: '8px 12px',
-          borderRadius: '6px',
-          marginTop: '12px',
-        }}>
-          <p style={{ 
-            color: '#EF4444', 
-            fontSize: '13px', 
-            margin: 0
-           }}>
-            Over budget by ${(budget.spent - budget.limit).toFixed(2)}
-          </p>
-        </div>
-      )}
-
-      {!budget.is_over_budget && budget.remaining > 0 && (
-        <p style={{ 
-          color: '#10B981', 
-          fontSize: '13px', 
-          marginTop: '12px' 
-          }}>
-          ${budget.remaining.toFixed(2)} remaining
-        </p>
-      )}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: "6px",
+        }}
+      >
+        <span style={{ color: "#4b7a64", fontSize: "12px" }}>
+          ${budget.spent.toFixed(0)} / ${budget.limit.toFixed(0)}
+        </span>
+        <span
+          style={{
+            color: getProgressColor(budget),
+            fontSize: "12px",
+            fontWeight: 600,
+          }}
+        >
+          {budget.percentage_used.toFixed()}%
+        </span>
+      </div>
+      <ProgressBar
+        pct={budget.percentage_used}
+        colorClass={
+          budget.is_over_budget
+            ? "bg-red-500"
+            : budget.percentage_used > 80
+              ? "bg-amber-400"
+              : "bg-emerald-400"
+        }
+      />
+      <p
+        style={{
+          color: budget.is_over_budget ? "#f87171" : "#34d399",
+          fontSize: "11px",
+          margin: "8px 0 0",
+        }}
+      >
+        {budget.is_over_budget
+          ? `Over by $${(budget.spent - budget.limit).toFixed(2)}`
+          : `$${budget.remaining.toFixed(0)} remaining`}
+      </p>
     </div>
   );
 };
